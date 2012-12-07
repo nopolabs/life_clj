@@ -55,12 +55,36 @@
             :when (live? cell (count (m cell)) gen)]
             cell))))
 
+(defn ngen
+  ([gen] (let [hood (neighborhood-map gen)] (ngen gen hood (keys hood) ())))
+  ([gen hood cells ng]
+    (if (empty? cells)
+      (set ng)
+      (let [f (first cells)
+            r (rest cells)
+            c (count (hood f))
+            l (if (or (= c 3) (and (= c 2) (contains? gen f))) (cons f ng) ng)]
+          (ngen gen hood r l)))))
+
+(defn ngenr
+  [gen]
+  (let [hood (neighborhood-map gen)]
+    (loop [cells (keys hood)
+           live ()]
+      (if (empty? cells)
+        (set live)
+        (let [f (first cells)
+              c (count (hood f))
+              l (if (or (= c 3) (and (= c 2) (contains? gen f))) (cons f live) live)]
+          (recur (rest cells) l))))))
+          
 (defn nth-gen
   "nth generation"
-  [number generation]
-  (loop [n number
-         gen generation]
-    (if (= 0 n)
-      (sort-gen gen)
-      (recur (dec n) (next-gen gen)))))
+  ([number generation] (nth-gen next-gen number generation))
+  ([gen-fn number generation]
+    (loop [n number
+           gen generation]
+      (if (= 0 n)
+        (sort-gen gen)
+        (recur (dec n) (gen-fn gen))))))
 
