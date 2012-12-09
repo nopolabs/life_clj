@@ -18,9 +18,26 @@
 ; a cell is an [x y] vector
 ;
 ; a generation is a set of live cells
-(def gen-0 #{            [1 3]
-             [2 1]       [2 3]
-                   [3 2] [3 3] })
+
+(defn input-gen
+  [in]
+  (set
+    (for [[i row]  (map-indexed vector in)
+          [j char] (map-indexed vector row)
+          :when (= char \*)]
+      [i j])))
+
+(def gen-0 (input-gen ["  *     *"
+                       "* *   * *"
+                       " **    **"]))
+
+(defn bounds
+  ([gen] (let [[x y] (first gen)] (bounds [x y x y] (rest gen))))
+  ([[min-x min-y max-x max-y] gen]
+    (if (empty? gen)
+      [min-x min-y max-x max-y]
+      (let [[x y] (first gen)]
+        (bounds [(min min-x x) (min min-y y) (max max-x x) (max max-y y)] (rest gen))))))
 
 (defn near [l] (range (dec l) (+ 2 l)))
 
@@ -32,13 +49,15 @@
         :when (not= [x y] [nx ny])]
     [nx ny]))
 
-(defn gen-order [[x1 y1] [x2 y2]] (or (< x1 x2) (< y1 y2)))
+(defn gen-order [[x1 y1] [x2 y2]] (or (< x1 x2) (and (= x1 x2) (< y1 y2))))
 
 (defn sort-gen [gen] (sort gen-order gen))
 
 (defn all-neighbors [gen] (for [cell (sort-gen gen) n (neighbors cell)] n))
 
-(defn neighborhood-map [gen] (group-by identity (all-neighbors gen)))
+(defn count-map [m] (into {} (for [[k v] m] [k (count v)])))
+
+(defn neighborhood-map [gen] (count-map (group-by identity (all-neighbors gen))))
 
 (defn survivor? [cell n gen] (and (contains? gen cell) (> n 1) (< n 4)))
 
@@ -52,8 +71,8 @@
   (set 
     (let [m (neighborhood-map gen)]
       (for [cell (keys m)
-            :when (live? cell (count (m cell)) gen)]
-            cell))))
+            :when (live? cell (m cell) gen)]
+        cell))))
 
 (defn ngen
   ([gen] (let [hood (neighborhood-map gen)] (ngen gen hood (keys hood) ())))
@@ -62,8 +81,8 @@
       (set ng)
       (let [f (first cells)
             r (rest cells)
-            c (count (hood f))
-            l (if (or (= c 3) (and (= c 2) (contains? gen f))) (cons f ng) ng)]
+            c (hood f)
+            l (if (live? f c gen) (cons f ng) ng)]
           (ngen gen hood r l)))))
 
 (defn ngenr
@@ -74,8 +93,8 @@
       (if (empty? cells)
         (set live)
         (let [f (first cells)
-              c (count (hood f))
-              l (if (or (= c 3) (and (= c 2) (contains? gen f))) (cons f live) live)]
+              c (hood f)
+              l (if (live? f c gen) (cons f live) live)]
           (recur (rest cells) l))))))
           
 (defn nth-gen
