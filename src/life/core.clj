@@ -19,7 +19,7 @@
 ;
 ; a generation is a set of live cells
 
-(defn input-gen
+(defn input-str
   [in]
   (set
     (for [[i row]  (map-indexed vector in)
@@ -27,17 +27,34 @@
           :when (= char \*)]
       [i j])))
 
-(def gen-0 (input-gen ["  *     *"
+(def gen-0 (input-str ["  *     *"
                        "* *   * *"
                        " **    **"]))
 
+(defn input-matrix
+  [matrix]
+  (into #{}
+    (let [rows (count matrix)
+          cols (count (get matrix 0))]
+      (for [i (range rows) j (range cols)
+            :when (= \* (get-in matrix [i j]))]
+        [i j]))))
+
+(def gen-00 (input-matrix [[ \* \  \  ]
+                           [ \* \  \* ]
+                           [ \* \* \  ]]))
+
+(defn min-max
+  [[min-x min-y max-x max-y] [x y]]
+  [(min min-x x) (min min-y y) (max max-x x) (max max-y y)])
+
 (defn bounds
   ([gen] (let [[x y] (first gen)] (bounds [x y x y] (rest gen))))
-  ([[min-x min-y max-x max-y] gen]
+  ([min-max-xy gen]
     (if (empty? gen)
-      [min-x min-y max-x max-y]
-      (let [[x y] (first gen)]
-        (bounds [(min min-x x) (min min-y y) (max max-x x) (max max-y y)] (rest gen))))))
+      min-max-xy
+      (let [xy (first gen)]
+        (bounds (min-max min-max-xy xy) (rest gen))))))
 
 (defn near [l] (range (dec l) (+ 2 l)))
 
