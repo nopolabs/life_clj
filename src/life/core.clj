@@ -27,9 +27,10 @@
           :when (= char \*)]
       [i j])))
 
-(def gen-0 (input-str ["  *     *"
-                       "* *   * *"
-                       " **    **"]))
+(def gen-0 (input-str ["    "
+                       "   *"
+                       " * *"
+                       "  **"]))
 
 (defn input-matrix
   [matrix]
@@ -44,20 +45,21 @@
                            [ \* \- \* ]
                            [ \* \* \- ]]))
 
-(defn min-max-location
-  [[min-loc max-loc] loc]
-  (let [[min-x min-y] min-loc
-        [max-x max-y] max-loc
-        [x y] loc]
-  [[(min min-x x) (min min-y y)] [(max max-x x) (max max-y y)]]))
+(defn v-map [f v1 v2] (map #(let [[x y] %] (f x y)) (map vector v1 v2)))
+
+(defn v-min [v1 v2] (v-map min v1 v2))
+
+(defn v-max [v1 v2] (v-map max v1 v2))
 
 (defn bounds
-  ([gen] (let [loc (first gen)] (bounds [loc loc] (rest gen))))
-  ([min-max-loc gen]
-    (if (empty? gen)
-      min-max-loc
-      (let [loc (first gen)]
-        (bounds (min-max-location min-max-loc loc) (rest gen))))))
+  ([locs] (let [loc (first locs)] (bounds [loc loc] (rest locs))))
+  ([[min-loc max-loc] locs]
+    (if (empty? locs)
+      [min-loc max-loc]
+      (let [loc (first locs)
+            mn (v-min loc min-loc)
+            mx (v-max loc max-loc)]
+        (bounds [mn mx] (rest locs))))))
 
 (defn output
   [gen]
@@ -74,17 +76,22 @@
 
 (defn neighbors
   "list the neighbors of a given cell"
-  [[x y]]
-  (for [nx (near x)
-        ny (near y)
-        :when (not= [x y] [nx ny])]
-    [nx ny]))
+  [loc]
+  (let [[x y] loc]
+    (for [nx (near x)
+          ny (near y)
+          :when (not= [x y] [nx ny])]
+      [nx ny])))
 
-(defn gen-order [[x1 y1] [x2 y2]] (or (< x1 x2) (and (= x1 x2) (< y1 y2))))
+(defn all-neighbors
+  [gen]
+  (apply concat 
+    (for [loc gen]
+      (neighbors loc))))
+
+(defn gen-order [[x1 y1] [x2 y2]] (or (< x1 x2) (and (= x1 x2) (<= y1 y2))))
 
 (defn sort-gen [gen] (sort gen-order gen))
-
-(defn all-neighbors [gen] (for [cell (sort-gen gen) n (neighbors cell)] n))
 
 (defn count-map [m] (into {} (for [[k v] m] [k (count v)])))
 
