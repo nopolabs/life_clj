@@ -15,13 +15,13 @@
 ;  Any live cell with two or three live neighbours lives on to the next generation.
 ;  Any dead cell with exactly three live neighbours becomes a live cell.
 
-; a cell is an [x y] vector
+; a cell is an location vector, e.g. [x y]
 ;
 ; a generation is a set of live cells
 
 (defn input-str
   [in]
-  (set
+  (into #{}
     (for [[i row]  (map-indexed vector in)
           [j char] (map-indexed vector row)
           :when (= char \*)]
@@ -40,21 +40,35 @@
             :when (= \* (get-in matrix [i j]))]
         [i j]))))
 
-(def gen-00 (input-matrix [[ \* \  \  ]
-                           [ \* \  \* ]
-                           [ \* \* \  ]]))
+(def gen-00 (input-matrix [[ \* \- \- ]
+                           [ \* \- \* ]
+                           [ \* \* \- ]]))
 
-(defn min-max
-  [[min-x min-y max-x max-y] [x y]]
-  [(min min-x x) (min min-y y) (max max-x x) (max max-y y)])
+(defn min-max-location
+  [[min-loc max-loc] loc]
+  (let [[min-x min-y] min-loc
+        [max-x max-y] max-loc
+        [x y] loc]
+  [[(min min-x x) (min min-y y)] [(max max-x x) (max max-y y)]]))
 
 (defn bounds
-  ([gen] (let [[x y] (first gen)] (bounds [x y x y] (rest gen))))
-  ([min-max-xy gen]
+  ([gen] (let [loc (first gen)] (bounds [loc loc] (rest gen))))
+  ([min-max-loc gen]
     (if (empty? gen)
-      min-max-xy
-      (let [xy (first gen)]
-        (bounds (min-max min-max-xy xy) (rest gen))))))
+      min-max-loc
+      (let [loc (first gen)]
+        (bounds (min-max-location min-max-loc loc) (rest gen))))))
+
+(defn output
+  [gen]
+  (let [[min-loc max-loc] (bounds gen)
+        [min-x min-y] min-loc
+        [max-x max-y] max-loc]
+    (into []
+      (for [r (range min-x (inc max-x))]
+        (into []
+          (for [c (range min-y (inc max-y))]
+            (if (contains? gen [r c]) \* \-)))))))
 
 (defn near [l] (range (dec l) (+ 2 l)))
 
