@@ -4,17 +4,17 @@
 
 ; in repl: (use :reload 'life.core-test)
 
-(deftest v-map-test
-  (testing "v-map"
-    (is (= (v-map + [1 2 3] [4 5 6]) [5 7 9]))))
+(deftest vector-map-test
+  (testing "vector-map"
+    (is (= (vector-map + [1 2 3] [4 5 6]) [5 7 9]))))
 
-(deftest v-min-test
-  (testing "v-min"
-    (is (= (v-min [1 2 3] [3 2 1]) [1 2 1]))))
+(deftest vector-min-test
+  (testing "vector-min"
+    (is (= (vector-min [1 2 3] [3 2 1]) [1 2 1]))))
 
-(deftest v-max-test
-  (testing "v-max"
-    (is (= (v-max [1 2 3] [3 2 1]) [3 2 3]))))
+(deftest vector-max-test
+  (testing "vector-max"
+    (is (= (vector-max [1 2 3] [3 2 1]) [3 2 3]))))
 
 (deftest bounds-test
   (testing "bounds"

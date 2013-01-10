@@ -1,31 +1,39 @@
 (ns life.core)
 
-; in repl: (use :reload 'life.core)
+;; in repl: (use :reload 'life.core)
 
-; The universe of the Game of Life is an infinite two-dimensional
-; orthogonal grid of square cells, each of which is in one of
-; two possible states, live or dead. Every cell interacts with 
-; its eight neighbors, which are the cells that are directly 
-; horizontally, vertically, or diagonally adjacent. 
-;
-; At each step in time, the following transitions occur:
-;
-;  Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
-;  Any live cell with more than three live neighbours dies, as if by overcrowding.
-;  Any live cell with two or three live neighbours lives on to the next generation.
-;  Any dead cell with exactly three live neighbours becomes a live cell.
+;; The universe of the Game of Life is an infinite two-dimensional
+;; orthogonal grid of square cells, each of which is in one of
+;; two possible states, live or dead. Every cell interacts with
+;; its eight neighbors, which are the cells that are directly
+;; horizontally, vertically, or diagonally adjacent.
+;;
+;; At each step in time, the following transitions occur:
+;;
+;;  Any live cell with fewer than two live neighbours dies, as if caused by underpopulation.
+;;  Any live cell with more than three live neighbours dies, as if by overcrowding.
+;;  Any live cell with two or three live neighbours lives on to the next generation.
+;;  Any dead cell with exactly three live neighbours becomes a live cell.
 
-; a cell is an location vector, e.g. [x y]
-;
-; a generation is a set of live cells
+;; a cell is an location vector, e.g. [row col]
+;;
+;; a generation is a set of live cells
+
+(def live-cell \*)
+
+(def empty-cell \-)
+
+(defn live-cell? [c] (= live-cell c))
+
+(defn empty-cell? [c] (complement (live-cell? c)))
 
 (defn input-str
   [in]
   (into #{}
-    (for [[i row]  (map-indexed vector in)
-          [j char] (map-indexed vector row)
-          :when (= char \*)]
-      [i j])))
+    (for [[r row]  (map-indexed vector in)
+          [c char] (map-indexed vector row)
+          :when (live-cell? char)]
+      [r c])))
 
 (def gen-0 (input-str ["    "
                        "   *"
@@ -37,51 +45,65 @@
   (into #{}
     (let [rows (count matrix)
           cols (count (get matrix 0))]
-      (for [i (range rows) j (range cols)
-            :when (= \* (get-in matrix [i j]))]
-        [i j]))))
+      (for [r (range rows)
+	    c (range cols)
+            :when (live-cell? (get-in matrix [r c]))]
+        [r c]))))
 
-(def gen-00 (input-matrix [[ \* \- \- ]
-                           [ \* \- \* ]
-                           [ \* \* \- ]]))
+(def gen-00
+     (input-matrix [[ \* \- \- ]
+                    [ \* \- \* ]
+                    [ \* \* \- ]]))
 
-(defn v-map [f v1 v2] (map #(let [[x y] %] (f x y)) (map vector v1 v2)))
+(defn vector-map
+  [f v1 v2]
+  (map #(let [[x y] %] (f x y))
+       (map vector
+	    v1 v2)))
 
-(defn v-min [v1 v2] (v-map min v1 v2))
+(defn vector-min
+  [v1 v2]
+  (vector-map min v1 v2))
 
-(defn v-max [v1 v2] (v-map max v1 v2))
+(defn vector-max
+  [v1 v2]
+  (vector-map max v1 v2))
 
 (defn bounds
-  ([locs] (let [loc (first locs)] (bounds [loc loc] (rest locs))))
-  ([[min-loc max-loc] locs]
+  ([locs]
+     (let [loc (first locs)]
+       (bounds [loc loc] (rest locs))))
+  ([[top-left bottom-right] locs]
     (if (empty? locs)
-      [min-loc max-loc]
+      [top-left bottom-right]
       (let [loc (first locs)
-            mn (v-min loc min-loc)
-            mx (v-max loc max-loc)]
-        (bounds [mn mx] (rest locs))))))
+            tl (vector-min loc top-left)
+            br (vector-max loc bottom-right)]
+        (bounds [tl br] (rest locs))))))
 
 (defn output
   [gen]
-  (let [[min-loc max-loc] (bounds gen)
-        [min-x min-y] min-loc
-        [max-x max-y] max-loc]
+  (let [[top-left bottom-right] (bounds gen)
+        [min-row min-col] top-left
+        [max-row max-col] bottom-right]
     (into []
-      (for [r (range min-x (inc max-x))]
+      (for [r (range min-row (inc max-row))]
         (into []
-          (for [c (range min-y (inc max-y))]
-            (if (contains? gen [r c]) \* \-)))))))
+          (for [c (range min-col (inc max-col))]
+            (if (contains? gen [r c])
+	      live-cell
+	      empty-cell)))))))
 
 (defn near [l] (range (dec l) (+ 2 l)))
 
 (defn neighbors
   "list the neighbors of a given cell"
   [loc]
-  (let [[x y] loc]
-    (for [nx (near x)
-          ny (near y)
-          :when (not= [x y] [nx ny])]
-      [nx ny])))
+  (let [[r c] loc]
+    (for [nr (near r)
+          nc (near c)
+          :when (not= [r c] [nr nc])]
+      [nr nc])))
 
 (defn all-neighbors
   [gen]
@@ -89,7 +111,7 @@
     (for [loc gen]
       (neighbors loc))))
 
-(defn gen-order [[x1 y1] [x2 y2]] (or (< x1 x2) (and (= x1 x2) (<= y1 y2))))
+(defn gen-order [[r1 c1] [r2 c2]] (or (< r1 r2) (and (= r1 r2) (<= c1 c2))))
 
 (defn sort-gen [gen] (sort gen-order gen))
 
